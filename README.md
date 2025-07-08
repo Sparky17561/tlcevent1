@@ -183,16 +183,45 @@ import os
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 ```
+Sure! Here's the **database setup section** you can copy-paste into your `README.md`, including:
 
-### Database Configuration
-For production, consider using PostgreSQL:
+1. SQL query to create the `student_info` table
+2. SQLite database config for `settings.py`
+
+---
+
+### 🗃️ Database Setup
+
+#### 🔹 SQL: Create Table (for SQLite or PostgreSQL)
+
+```sql
+CREATE TABLE student_info (
+    id TEXT PRIMARY KEY,
+    college_name TEXT,
+    project_name TEXT,
+    domain TEXT,
+    number_of_students INTEGER,
+    name TEXT,
+    email TEXT UNIQUE,
+    contact TEXT,
+    attendance INTEGER DEFAULT 0
+);
+```
+
+> ⚠️ Note: This assumes you're using `TEXT` for UUIDs and emails, works with both SQLite and PostgreSQL.
+
+---
+
+#### 🔹 Django Database Configuration (`settings.py`)
+
+
 
 ```python
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'qr_attendance',
-        'USER': 'your_db_user',
+        'USER': 'postgres',
         'PASSWORD': 'your_db_password',
         'HOST': 'localhost',
         'PORT': '5432',
