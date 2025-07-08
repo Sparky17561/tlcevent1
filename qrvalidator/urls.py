@@ -14,7 +14,7 @@ urlpatterns = [
     path('upload/', upload_students, name='upload_students'),
     
     # ─── 2. QR Scanner Page ───────────────────────────────────────────────────────
-    path('scan/', scan_page, name='scan_page'),
+    path('', scan_page, name='scan_page'),
 
     # ─── 3. API: Check Existence ─────────────────────────────────────────────────
     path('api/check_id/<uuid:qr_id>/', api_check_id, name='api_check_id'),
