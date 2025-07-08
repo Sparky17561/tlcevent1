@@ -1,72 +1,73 @@
-````markdown
----
+# QR Attendance System
 
-# ✅ QR Attendance System (Django)
+A comprehensive web-based attendance management system built with Django that streamlines student attendance tracking through QR code scanning and Excel integration.
 
-A web-based attendance management system that:
+## 🌟 Features
 
-- 📤 Imports student details from Excel files
-- 📷 Scans QR codes to mark attendance
-- 🧾 Shows scanned and registered student info
-- 📧 Sends emails with QR codes to students
-- 🖱️ Admin toggles attendance manually from dashboard
+- **📤 Excel Integration**: Import student details from Excel files with support for multiple students per row
+- **📷 QR Code Scanning**: Real-time camera-based QR code scanning for automatic attendance marking
+- **🧾 Dashboard**: View scanned students and all registered students in one place
+- **📧 Email Integration**: Send personalized QR codes to students via email
+- **🖱️ Manual Control**: Admin can toggle attendance manually from the dashboard
+- **🧠 Smart Parsing**: Auto-parse up to 4 students per row in Excel files
 
----
+## 🖼️ Screenshots
 
-## 🖼️ UI Overview
+### Dashboard Overview
+![Dashboard UI](assets/firstlook.png)
+*Main dashboard showing student list and attendance status*
 
-### 🎯 First Look
-<img src="assets/firstlook.png" alt="Dashboard UI" width="700"/>
+### Email QR Code Feature
+![Send Email UI](assets/sendqr.png)
+*Interface for sending QR codes to students via email*
 
-### ✉️ Send QR Button
-<img src="assets/sendqr.png" alt="Send Email UI" width="400"/>
+### QR Scan Result
+![Scanned QR Result](assets/example.png)
+*Example of successful QR code scan with student information*
 
-### ✅ Scan Result Example
-<img src="assets/example.png" alt="Scanned QR Result" width="600"/>
-
----
-
-## 📦 Requirements
+## 📋 Requirements
 
 - Python 3.10+
 - pip
 - virtualenv (recommended)
-- SQLite (default DB, no setup needed)
+- SQLite (default database - no additional setup required)
 
----
+## 🚀 Installation & Setup
 
-## 🚀 Setup Instructions
-
-### 1. Clone the project
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/your-username/qr-attendance.git
 cd qr-attendance
-````
+```
 
-### 2. Create and activate a virtual environment (recommended)
+### 2. Create Virtual Environment
 
 ```bash
 python -m venv venv
-source venv/bin/activate        # Linux/macOS
-venv\Scripts\activate           # Windows
+
+# Activate virtual environment
+# On Linux/macOS:
+source venv/bin/activate
+
+# On Windows:
+venv\Scripts\activate
 ```
 
-### 3. Install dependencies
+### 3. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-> **Note**: If `requirements.txt` doesn't exist yet, generate it using:
+> **Note**: If `requirements.txt` doesn't exist, generate it using:
+> ```bash
+> pip freeze > requirements.txt
+> ```
 
-```bash
-pip freeze > requirements.txt
-```
+### 4. Configure Email Settings
 
----
-
-### 4. Configure Email in `settings.py` (📧)
+Edit `settings.py` and configure your email settings:
 
 ```python
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -78,30 +79,23 @@ EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = 'your-email@gmail.com'
 ```
 
-> ⚠️ Use an **App Password** if using Gmail.
-> (Google Account → Security → App Passwords)
+> ⚠️ **Important**: For Gmail, use an **App Password** instead of your regular password.
+> Generate one at: Google Account → Security → App Passwords
 
----
-
-### 5. Apply database migrations
+### 5. Database Setup
 
 ```bash
 python manage.py makemigrations
 python manage.py migrate
 ```
 
----
-
-### 6. Run the server
+### 6. Run the Development Server
 
 ```bash
 python manage.py runserver
 ```
 
-Then visit:
-📍 [http://127.0.0.1:8000/scan/](http://127.0.0.1:8000/scan/)
-
----
+Visit: [http://127.0.0.1:8000/scan/](http://127.0.0.1:8000/scan/)
 
 ## 📂 Project Structure
 
@@ -110,81 +104,122 @@ qr-attendance/
 │
 ├── manage.py
 ├── requirements.txt
+├── README.md
 ├── tlcevent1/              # Django project root
-│   └── settings.py
+│   ├── settings.py
+│   ├── urls.py
+│   └── wsgi.py
 │
-└── qrvalidator/            # Main app
-    ├── models.py
-    ├── views.py
-    ├── urls.py
-    ├── templates/
-    │   └── scan.html
-    ├── static/
-    │   └── js/
-    │       ├── qr-scanner.min.js
-    │       └── qr-scanner-worker.min.js
-    └── assets/
-        ├── firstlook.png
-        ├── sendqr.png
-        └── example.png
+├── qrvalidator/            # Main application
+│   ├── models.py
+│   ├── views.py
+│   ├── urls.py
+│   ├── admin.py
+│   ├── templates/
+│   │   └── scan.html
+│   ├── static/
+│   │   └── js/
+│   │       ├── qr-scanner.min.js
+│   │       └── qr-scanner-worker.min.js
+│   └── migrations/
+│
+└── assets/                 # Documentation images
+    ├── firstlook.png
+    ├── sendqr.png
+    └── example.png
 ```
 
----
+## 🔌 API Endpoints
 
-## ✅ Features
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/upload/` | POST | Upload Excel file with student data |
+| `/scan/` | GET | Main scanner and dashboard page |
+| `/api/student/<uuid>/` | GET | Fetch student details by QR UUID |
+| `/api/toggle_attendance/<uuid>/` | POST | Toggle attendance status (admin) |
+| `/api/send_qr_emails/` | POST | Send QR codes to all students via email |
 
-* 📤 Upload Excel files with multiple students per row
-* 📷 Real-time QR camera scanning (auto-attendance)
-* 🧾 View scanned student and all registered students
-* 📧 Send QR codes via email (SMTP config required)
-* 🔁 Toggle attendance manually with one click
-* 🧠 Auto-parse up to 4 students per row in Excel
+## 📊 Excel File Format
 
----
+The system expects Excel files with the following structure:
 
-## 📌 API Endpoints
+- **Headers**: `College`, `Project`, `Domain`, `#Students`
+- **Student Data Blocks**: Each row contains data for 2-4 students
+- **Student Fields**: `[Name, Email, Contact, Photo]` (Photo is optional)
 
-| Endpoint                         | Method | Purpose                    |
-| -------------------------------- | ------ | -------------------------- |
-| `/upload/`                       | POST   | Upload Excel file          |
-| `/scan/`                         | GET    | Scanner and dashboard page |
-| `/api/student/<uuid>/`           | GET    | Fetch student by QR ID     |
-| `/api/toggle_attendance/<uuid>/` | POST   | Toggle attendance (admin)  |
-| `/api/send_qr_emails/`           | POST   | Email QR codes to students |
+### Example Excel Structure:
+```
+College | Project | Domain | #Students | Name1 | Email1 | Contact1 | Photo1 | Name2 | Email2 | Contact2 | Photo2
+--------|---------|--------|-----------|-------|--------|----------|--------|-------|--------|----------|--------
+ABC College | Project A | Web Dev | 2 | John Doe | john@email.com | 1234567890 | photo1.jpg | Jane Smith | jane@email.com | 0987654321 | photo2.jpg
+```
 
----
+## 🧪 Testing
 
-## 🧪 Testing Sample
+You can test the system with a sample Excel file like `Creathon.xlsx`. The system will:
 
-You can upload an Excel like `Creathon.xlsx` with:
+1. Parse the Excel file and extract student information
+2. Generate unique QR codes for each student
+3. Store student data in the database
+4. Allow QR scanning for attendance marking
 
-* Columns: `College`, `Project`, `Domain`, `#Students`
-* Then blocks of: `[Name, Email, Contact, Photo]` × N (2–4)
-* The `Photo` column is optional and ignored
+## 🛠️ Troubleshooting
 
----
+| Issue | Solution |
+|-------|----------|
+| ❌ Camera not working | Ensure browser permissions are granted for camera access |
+| 📧 Emails not sending | Verify SMTP credentials and use App Password for Gmail |
+| 🌀 Duplicate entries | System uses email addresses to ensure uniqueness |
+| ❓ QR not recognized | Ensure proper UUID string is embedded in QR code |
+| 🚫 Permission denied | Check file permissions and virtual environment activation |
 
-## 🛠 Troubleshooting
+## 🔧 Configuration
 
-| Issue                 | Solution                                      |
-| --------------------- | --------------------------------------------- |
-| ❌ Camera not working  | Ensure browser permissions are allowed        |
-| 📧 Emails not sending | Use correct SMTP credentials and App Password |
-| 🌀 Duplicate entries  | The DB uses **email** to ensure uniqueness    |
-| ❓ QR not recognized   | Ensure proper UUID string is embedded         |
+### Email Configuration
+For production, consider using environment variables:
 
----
+```python
+import os
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+```
+
+### Database Configuration
+For production, consider using PostgreSQL:
+
+```python
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'qr_attendance',
+        'USER': 'your_db_user',
+        'PASSWORD': 'your_db_password',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    }
+}
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/new-feature`)
+3. Commit your changes (`git commit -am 'Add new feature'`)
+4. Push to the branch (`git push origin feature/new-feature`)
+5. Create a Pull Request
 
 ## 📄 License
 
 MIT License © 2025 – Saiprasad Jamdar
 
+## 🙏 Acknowledgments
+
+- QR Scanner library for JavaScript integration
+- Django framework for robust web development
+- Bootstrap for responsive UI components
+
 ---
 
-```
+**Need help?** Feel free to open an issue or contact the maintainer.
 
-> ✅ **To use the images**, ensure they're placed inside the `assets/` folder and committed to your repo.  
-> Markdown auto-renders image links like `![alt](assets/filename.png)` when viewed on GitHub.
-
-Let me know if you want a `Creathon.xlsx` template added as a downloadable file too.
-```
+**⭐ Star this repository** if you find it useful!
