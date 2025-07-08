@@ -1,0 +1,707 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TLC Event Attendance</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #f1f5f9;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .app-container {
+      display: flex;
+      height: 100vh;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(10px);
+    }
+
+    .sidebar {
+      width: 380px;
+      background: linear-gradient(180deg, #1e293b 0%, #334155 100%);
+      border-right: 1px solid rgba(6, 182, 212, 0.2);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .sidebar::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #06b6d4, #10b981, #3b82f6);
+    }
+
+    .sidebar-header {
+      padding: 24px;
+      background: rgba(6, 182, 212, 0.1);
+      border-bottom: 1px solid rgba(6, 182, 212, 0.2);
+    }
+
+    .logo {
+      font-size: 24px;
+      font-weight: 700;
+      color: #06b6d4;
+      text-align: center;
+      margin-bottom: 8px;
+      text-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #94a3b8;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .sidebar-content {
+      padding: 24px;
+      flex: 1;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #06b6d4 transparent;
+    }
+
+    .sidebar-content::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .sidebar-content::-webkit-scrollbar-thumb {
+      background: #06b6d4;
+      border-radius: 2px;
+    }
+
+    .scanner-section {
+      margin-bottom: 32px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #10b981;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-title::before {
+      content: '';
+      width: 4px;
+      height: 16px;
+      background: linear-gradient(180deg, #10b981, #06b6d4);
+      border-radius: 2px;
+    }
+
+    video {
+      width: 100%;
+      aspect-ratio: 1/1;
+      border: 2px solid rgba(6, 182, 212, 0.3);
+      border-radius: 12px;
+      margin-bottom: 16px;
+      background: #0f172a;
+      box-shadow: 0 8px 32px rgba(6, 182, 212, 0.1);
+    }
+
+    .status-indicator {
+      padding: 12px 16px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #10b981;
+      text-align: center;
+      margin-bottom: 16px;
+      backdrop-filter: blur(10px);
+    }
+
+    .upload-section {
+      margin-bottom: 32px;
+    }
+
+    .upload-form {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px dashed rgba(16, 185, 129, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .upload-form:hover {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: rgba(16, 185, 129, 0.5);
+    }
+
+    .file-input {
+      width: 100%;
+      padding: 12px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      border-radius: 8px;
+      color: #f1f5f9;
+      font-size: 14px;
+      margin-bottom: 16px;
+      backdrop-filter: blur(10px);
+    }
+
+    .file-input::file-selector-button {
+      background: linear-gradient(135deg, #06b6d4, #10b981);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-right: 12px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #06b6d4, #10b981);
+      color: white;
+      box-shadow: 0 4px 20px rgba(6, 182, 212, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(6, 182, 212, 0.4);
+    }
+
+    .btn-secondary {
+      background: rgba(59, 130, 246, 0.1);
+      color: #3b82f6;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      margin-top: 12px;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: rgba(59, 130, 246, 0.5);
+    }
+
+    .btn-email {
+      background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+      color: white;
+      margin-top: 12px;
+      box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
+    }
+
+    .btn-email:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(139, 92, 246, 0.4);
+    }
+
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .main-header {
+      padding: 24px 32px;
+      background: rgba(30, 41, 59, 0.8);
+      border-bottom: 1px solid rgba(6, 182, 212, 0.2);
+      backdrop-filter: blur(10px);
+    }
+
+    .main-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #06b6d4;
+      margin-bottom: 8px;
+    }
+
+    .scan-details {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      border-radius: 12px;
+      padding: 20px;
+      backdrop-filter: blur(10px);
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 12px;
+    }
+
+    .detail-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .detail-label {
+      font-weight: 600;
+      color: #10b981;
+      min-width: 80px;
+      font-size: 14px;
+    }
+
+    .detail-value {
+      color: #f1f5f9;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .students-section {
+      flex: 1;
+      padding: 32px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .students-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .students-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #06b6d4;
+    }
+
+    .students-count {
+      background: rgba(6, 182, 212, 0.1);
+      color: #06b6d4;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .table-container {
+      flex: 1;
+      overflow: auto;
+      background: rgba(30, 41, 59, 0.5);
+      border: 1px solid rgba(6, 182, 212, 0.2);
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      background: rgba(6, 182, 212, 0.1);
+      color: #06b6d4;
+      font-weight: 600;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 16px 12px;
+      text-align: left;
+      border-bottom: 1px solid rgba(6, 182, 212, 0.2);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.3);
+      font-size: 14px;
+      color: #e2e8f0;
+    }
+
+    tr:hover {
+      background: rgba(6, 182, 212, 0.05);
+    }
+
+    .attendance-btn {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .attendance-btn.present {
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      color: white;
+    }
+
+    .attendance-btn.absent {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .attendance-btn:hover {
+      transform: scale(1.05);
+    }
+
+    .table-container::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    .table-container::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 4px;
+    }
+
+    .table-container::-webkit-scrollbar-thumb {
+      background: rgba(6, 182, 212, 0.5);
+      border-radius: 4px;
+    }
+
+    .table-container::-webkit-scrollbar-thumb:hover {
+      background: rgba(6, 182, 212, 0.7);
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 100%;
+        position: fixed;
+        z-index: 100;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+      }
+
+      .sidebar.active {
+        transform: translateX(0);
+      }
+
+      .main-content {
+        width: 100%;
+      }
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(6, 182, 212, 0.3);
+      border-top: 2px solid #06b6d4;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .pulse {
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- LEFT SIDEBAR -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">TLC EVENTS</div>
+        <div class="subtitle">Attendance Management</div>
+      </div>
+
+      <div class="sidebar-content">
+        <!-- QR Scanner Section -->
+        <div class="scanner-section">
+          <h3 class="section-title">QR Scanner</h3>
+          <video id="video" autoplay muted playsinline></video>
+          <div class="status-indicator" id="status">Waiting for scan...</div>
+          <button class="btn btn-secondary" id="toggle-btn">Pause Scanner</button>
+        </div>
+
+        <!-- Excel Upload Section -->
+        <div class="upload-section">
+          <h3 class="section-title">Import Students</h3>
+          <form class="upload-form" id="excel-upload-form" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="file" name="excel_file" accept=".xlsx" class="file-input" required>
+            <button type="submit" class="btn btn-primary">Upload Excel</button>
+          </form>
+        </div>
+
+        <!-- Actions Section -->
+        <div class="actions-section">
+          <form action="{% url 'api_send_qr_emails' %}" method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-email">Send QR Emails</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT MAIN CONTENT -->
+    <div class="main-content">
+      <!-- Main Header -->
+      <div class="main-header">
+        <h2 class="main-title">Student Information</h2>
+        <div class="scan-details" id="scan-details">
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="detail-label">Name:</span>
+              <span class="detail-value" id="d-name">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Email:</span>
+              <span class="detail-value" id="d-email">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Contact:</span>
+              <span class="detail-value" id="d-contact">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">College:</span>
+              <span class="detail-value" id="d-college">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Project:</span>
+              <span class="detail-value" id="d-project">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Domain:</span>
+              <span class="detail-value" id="d-domain">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Status:</span>
+              <span class="detail-value" id="d-attendance">-</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Students Table Section -->
+      <div class="students-section">
+        <div class="students-header">
+          <h3 class="students-title">Registered Students</h3>
+          <span class="students-count">{{ students|length }} Students</span>
+        </div>
+        
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Contact</th>
+                <th>College</th>
+                <th>Project</th>
+                <th>Domain</th>
+                <th>Attendance</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in students %}
+              <tr>
+                <td>{{ s.name }}</td>
+                <td>{{ s.email }}</td>
+                <td>{{ s.contact }}</td>
+                <td>{{ s.college_name }}</td>
+                <td>{{ s.project_name }}</td>
+                <td>{{ s.domain }}</td>
+                <td>
+                  <button class="attendance-btn {% if s.attendance %}present{% else %}absent{% endif %}" 
+                          onclick="toggleAttendance('{{ s.id }}', this)">
+                    {% if s.attendance %}✅ Present{% else %}❌ Absent{% endif %}
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="{% static 'js/qr-scanner.min.js' %}"></script>
+  <script>
+    const video = document.getElementById('video');
+    const status = document.getElementById('status');
+    const toggleBtn = document.getElementById('toggle-btn');
+    const detailBox = {
+      name: document.getElementById('d-name'),
+      email: document.getElementById('d-email'),
+      contact: document.getElementById('d-contact'),
+      college: document.getElementById('d-college'),
+      project: document.getElementById('d-project'),
+      domain: document.getElementById('d-domain'),
+      attendance: document.getElementById('d-attendance'),
+    };
+
+    QrScanner.WORKER_PATH = "{% static 'js/qr-scanner-worker.min.js' %}";
+
+    let scannerActive = true;
+    let lastScanned = null;
+
+    const scanner = new QrScanner(video, result => {
+      if (scannerActive && result && result !== lastScanned) {
+        lastScanned = result;
+        status.innerHTML = '<span class="loading-spinner"></span> Processing...';
+        status.className = 'status-indicator pulse';
+
+        fetch(`/api/student/${result}/`)
+          .then(res => res.json())
+          .then(data => {
+            detailBox.name.textContent = data.name || '-';
+            detailBox.email.textContent = data.email || '-';
+            detailBox.contact.textContent = data.contact || '-';
+            detailBox.college.textContent = data.college_name || '-';
+            detailBox.project.textContent = data.project_name || '-';
+            detailBox.domain.textContent = data.domain || '-';
+            detailBox.attendance.textContent = data.attendance == 1 ? "✅ Present" : "❌ Absent";
+            
+            status.textContent = `✅ Scanned: ${data.name || result}`;
+            status.className = 'status-indicator';
+          })
+          .catch(err => {
+            status.textContent = "❌ Error scanning";
+            status.className = 'status-indicator';
+            console.error(err);
+          })
+          .finally(() => {
+            setTimeout(() => {
+              lastScanned = null;
+              if (scannerActive) {
+                status.textContent = "Waiting for scan...";
+                status.className = 'status-indicator';
+              }
+            }, 3000);
+          });
+      }
+    });
+
+    scanner.start().catch(err => {
+      status.textContent = "❌ Camera access denied";
+      status.className = 'status-indicator';
+      console.error(err);
+    });
+
+    toggleBtn.onclick = () => {
+      if (scannerActive) {
+        scanner.stop();
+        scannerActive = false;
+        toggleBtn.textContent = "Resume Scanner";
+        toggleBtn.className = "btn btn-primary";
+        status.textContent = "Scanner paused";
+      } else {
+        scanner.start().then(() => {
+          scannerActive = true;
+          toggleBtn.textContent = "Pause Scanner";
+          toggleBtn.className = "btn btn-secondary";
+          status.textContent = "Waiting for scan...";
+        });
+      }
+    };
+
+    function toggleAttendance(id, btn) {
+      const originalContent = btn.innerHTML;
+      btn.innerHTML = '<span class="loading-spinner"></span>';
+      btn.disabled = true;
+
+      fetch(`/api/toggle_attendance/${id}/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          const isPresent = data.new_state === 1;
+          btn.innerHTML = isPresent ? "✅ Present" : "❌ Absent";
+          btn.className = `attendance-btn ${isPresent ? 'present' : 'absent'}`;
+        } else {
+          btn.innerHTML = originalContent;
+          alert("Failed to toggle attendance.");
+        }
+      })
+      .catch(err => {
+        btn.innerHTML = originalContent;
+        alert("Toggle error: " + err);
+      })
+      .finally(() => {
+        btn.disabled = false;
+      });
+    }
+
+    document.getElementById('excel-upload-form').onsubmit = function(e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+      const submitBtn = this.querySelector('button[type="submit"]');
+      const originalText = submitBtn.innerHTML;
+      
+      submitBtn.innerHTML = '<span class="loading-spinner"></span> Uploading...';
+      submitBtn.disabled = true;
+
+      fetch("{% url 'upload_students' %}", {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => {
+        alert(data.message || 'Upload complete.');
+        location.reload();
+      })
+      .catch(err => {
+        alert("Upload failed: " + err);
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+      });
+    };
+
+    // Add smooth scrolling for better UX
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        document.querySelector(this.getAttribute('href')).scrollIntoView({
+          behavior: 'smooth'
+        });
+      });
+    });
+  </script>
+</body>
+</html>

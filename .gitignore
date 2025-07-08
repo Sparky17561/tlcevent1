@@ -1,0 +1,96 @@
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Virtual environment
+venv/
+.venv/
+env/
+.env
+
+# Django specific
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Static files (collected)
+staticfiles/
+
+# Media files (user uploads)
+media/
+
+# Cache directories
+*/__pycache__/
+qrvalidator/__pycache__/
+tlcevent1/__pycache__/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Project specific uploads
+uploads/
+qr_codes/
+student_photos/
+certificates/
+excel_uploads/
+
+# Backup files
+*.bak
+*.backup
+
+# Temporary files
+*.tmp
+*.temp
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Assets that might be generated
+assets/generated/
+
+# Database backups
+*.dump
+*.sql
+
+# Log files
+*.log
+logs/
+
+# Secret configurations
+secret_key.txt
+config.ini
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Unit test / coverage reports
+htmlcov/
+.coverage
+.pytest_cache/
+
+# Migrations (uncomment if you don't want to track them)
+# qrvalidator/migrations/
+# */migrations/__pycache__/
+
+# Node modules (if using any frontend build tools)
+node_modules/
+
+# Collected static files
+/static/
+
+# Development database
+development.db
