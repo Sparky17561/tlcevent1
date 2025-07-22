@@ -243,7 +243,8 @@ from django.db import connection
 # from django.core.mail import EmailMessage  # Mail logic is commented
 
 # Constants for ticket template
-TEMPLATE_PATH = "qr-design.png"   # Blank ticket template
+# Absolute path to the image file
+TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "qr-design.png")
 X, Y    = 547, 790                # Top‑left corner of QR box
 BW, BH  = 320, 320                # QR box width & height
 TICKETS_DIR = "tickets"          # Folder to store PDF tickets
@@ -325,7 +326,8 @@ from django.http import JsonResponse
 from django.db import connection
 from django.views.decorators.http import require_POST
 
-TEMPLATE_PATH = "qr-design.png"
+TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "qr-design.png")
+
 X, Y = 547, 790
 BW, BH = 320, 320
 TICKETS_DIR = "tickets"
