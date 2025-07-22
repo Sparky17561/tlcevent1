@@ -462,12 +462,24 @@
         </div>
 
         <!-- Actions Section -->
-        <div class="actions-section">
-          <form action="{% url 'api_send_qr_emails' %}" method="post">
+        <div class="actions-section" style="display: flex; gap: 12px; padding: 0 24px;">
+          <!-- Generate PDFs Button -->
+          <form action="{% url 'api_generate_qr_pdfs' %}" method="post" style="display: inline;">
             {% csrf_token %}
-            <button type="submit" class="btn btn-email">Send QR Emails</button>
+            <button type="submit" class="btn btn-primary">
+              Generate Tickets
+            </button>
+          </form>
+
+          <!-- Send Emails Button -->
+          <form action="{% url 'api_send_qr_emails' %}" method="post" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-email">
+              Send QR Emails
+            </button>
           </form>
         </div>
+
       </div>
     </div>
 

@@ -254,65 +254,171 @@ os.makedirs(TICKETS_DIR, exist_ok=True)
 def to_snake_case(name):
     return name.strip().lower().replace(" ", "_")
 
-@require_POST
-def api_send_qr_emails(request):
-    """
-    POST /api/send_qr_emails/
-      → generates QR for each student.id, places it on template,
-        saves as ticket PDF in /tickets folder with name_snake_case.pdf
-    """
-    sent_count = 0
-    failed = []
+# @require_POST
+# def api_send_qr_emails(request):
+#     """
+#     POST /api/send_qr_emails/
+#       → generates QR for each student.id, places it on template,
+#         saves as ticket PDF in /tickets folder with name_snake_case.pdf
+#     """
+#     sent_count = 0
+#     failed = []
 
+#     with connection.cursor() as cursor:
+#         cursor.execute("SELECT id, email, name FROM student_info WHERE email IS NOT NULL")
+#         rows = cursor.fetchall()
+
+#     for uid, email, name in rows:
+#         try:
+#             # Generate QR code in memory
+#             qr = qrcode.QRCode(box_size=10, border=4)
+#             qr.add_data(str(uid))
+#             qr.make(fit=True)
+#             img = qr.make_image(fill_color="black", back_color="white")
+
+#             # Load and resize QR
+#             qr_resized = img.resize((BW, BH), Image.LANCZOS)
+
+#             # Load ticket template
+#             if not os.path.exists(TEMPLATE_PATH):
+#                 raise FileNotFoundError(f"Template not found: {TEMPLATE_PATH}")
+#             template = Image.open(TEMPLATE_PATH).convert("RGB")
+
+#             # Paste QR onto ticket
+#             template.paste(qr_resized, (X, Y))
+
+#             # Save as PDF in tickets/ folder
+#             filename = f"{to_snake_case(name)}.pdf"
+#             output_path = os.path.join(TICKETS_DIR, filename)
+#             template.save(output_path, format="PDF")
+
+#             sent_count += 1
+
+#             # # Send email with PDF attachment (COMMENTED OUT)
+#             # mail = EmailMessage(
+#             #     subject="Your Student QR Code",
+#             #     body=(
+#             #         "Hello,\n\n"
+#             #         "Please find attached your unique QR code for event check‑in.\n\n"
+#             #         "Thank you."
+#             #     ),
+#             #     from_email=settings.DEFAULT_FROM_EMAIL,
+#             #     to=[email],
+#             # )
+#             # with open(output_path, "rb") as f:
+#             #     mail.attach(filename, f.read(), "application/pdf")
+#             # mail.send(fail_silently=False)
+
+#         except Exception as e:
+#             failed.append({'email': email, 'error': str(e)})
+
+#     return JsonResponse({'sent': sent_count, 'failed': failed})
+
+
+
+# views.py
+
+import os
+import qrcode
+from PIL import Image
+from django.http import JsonResponse
+from django.db import connection
+from django.views.decorators.http import require_POST
+
+TEMPLATE_PATH = "qr-design.png"
+X, Y = 547, 790
+BW, BH = 320, 320
+TICKETS_DIR = "tickets"
+os.makedirs(TICKETS_DIR, exist_ok=True)
+
+def to_snake_case(name):
+    return name.strip().lower().replace(" ", "_")
+
+@require_POST
+def api_generate_qr_pdfs(request):
     with connection.cursor() as cursor:
-        cursor.execute("SELECT id, email, name FROM student_info WHERE email IS NOT NULL")
+        cursor.execute("SELECT id, name FROM student_info")
         rows = cursor.fetchall()
 
-    for uid, email, name in rows:
+    generated = []
+    for uid, name in rows:
         try:
-            # Generate QR code in memory
+            # QR generation
             qr = qrcode.QRCode(box_size=10, border=4)
             qr.add_data(str(uid))
             qr.make(fit=True)
-            img = qr.make_image(fill_color="black", back_color="white")
+            qr_img = qr.make_image(fill_color="black", back_color="white")
+            qr_resized = qr_img.resize((BW, BH), Image.LANCZOS)
 
-            # Load and resize QR
-            qr_resized = img.resize((BW, BH), Image.LANCZOS)
-
-            # Load ticket template
-            if not os.path.exists(TEMPLATE_PATH):
-                raise FileNotFoundError(f"Template not found: {TEMPLATE_PATH}")
+            # Load template
             template = Image.open(TEMPLATE_PATH).convert("RGB")
-
-            # Paste QR onto ticket
             template.paste(qr_resized, (X, Y))
 
-            # Save as PDF in tickets/ folder
+            # Save PDF
             filename = f"{to_snake_case(name)}.pdf"
             output_path = os.path.join(TICKETS_DIR, filename)
             template.save(output_path, format="PDF")
+            generated.append(filename)
+        except Exception as e:
+            print(f"Error generating for {name}: {e}")
 
-            sent_count += 1
+    return JsonResponse({"generated": generated, "count": len(generated)})
 
-            # # Send email with PDF attachment (COMMENTED OUT)
-            # mail = EmailMessage(
-            #     subject="Your Student QR Code",
-            #     body=(
-            #         "Hello,\n\n"
-            #         "Please find attached your unique QR code for event check‑in.\n\n"
-            #         "Thank you."
-            #     ),
-            #     from_email=settings.DEFAULT_FROM_EMAIL,
-            #     to=[email],
-            # )
-            # with open(output_path, "rb") as f:
-            #     mail.attach(filename, f.read(), "application/pdf")
-            # mail.send(fail_silently=False)
+
+# views.py (same file)
+
+from django.core.mail import EmailMessage
+from django.conf import settings
+
+def to_title_case(s):
+    return ' '.join([word.capitalize() for word in s.replace("_", " ").split()])
+
+@require_POST
+def api_send_qr_emails(request):
+    sent = 0
+    failed = []
+
+    pdf_files = [f for f in os.listdir(TICKETS_DIR) if f.endswith(".pdf")]
+
+    for pdf_name in pdf_files:
+        try:
+            name_snake = os.path.splitext(pdf_name)[0]
+            actual_name = to_title_case(name_snake)
+
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT email FROM student_info WHERE LOWER(name) = LOWER(%s)", [actual_name])
+                result = cursor.fetchone()
+
+            if not result:
+                failed.append({'file': pdf_name, 'error': "No matching name in DB"})
+                continue
+
+            email = result[0]
+            if not email:
+                failed.append({'file': pdf_name, 'error': "No email found"})
+                continue
+
+            pdf_path = os.path.join(TICKETS_DIR, pdf_name)
+            with open(pdf_path, "rb") as f:
+                mail = EmailMessage(
+                    subject="Your Event QR Ticket",
+                    body=(
+                        f"Dear {actual_name},\n\n"
+                        "Please find attached your personalized event QR ticket.\n\n"
+                        "Regards,\nEvent Team"
+                    ),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    to=[email],
+                )
+                mail.attach(pdf_name, f.read(), "application/pdf")
+                mail.send()
+
+            sent += 1
 
         except Exception as e:
-            failed.append({'email': email, 'error': str(e)})
+            failed.append({'file': pdf_name, 'error': str(e)})
 
-    return JsonResponse({'sent': sent_count, 'failed': failed})
+    return JsonResponse({'sent': sent, 'failed': failed})
 
 
 from django.views.decorators.http import require_POST
