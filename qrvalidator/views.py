@@ -183,51 +183,133 @@ from django.db         import connection
 from django.http       import JsonResponse
 from django.views.decorators.http import require_POST
 
+# @require_POST
+# def api_send_qr_emails(request):
+#     """
+#     POST /api/send_qr_emails/
+#       → generates QR for each student.id, emails it to student.email
+#       → returns JSON { sent: <count>, failed: [<email list>] }
+#     """
+#     sent_count = 0
+#     failed = []
+
+#     # 1. Fetch all students
+#     with connection.cursor() as cursor:
+#         cursor.execute("SELECT id, email FROM student_info WHERE email IS NOT NULL")
+#         rows = cursor.fetchall()
+
+#     for uid, email in rows:
+#         try:
+#             # 2. Generate QR image in memory
+#             qr = qrcode.QRCode(box_size=10, border=4)
+#             qr.add_data(str(uid))
+#             qr.make(fit=True)
+#             img = qr.make_image(fill_color="black", back_color="white")
+
+#             buf = io.BytesIO()
+#             img.save(buf, format='PNG')
+#             buf.seek(0)
+
+#             # 3. Create and send email
+#             mail = EmailMessage(
+#                 subject="Your Student QR Code",
+#                 body=(
+#                     "Hello,\n\n"
+#                     "Please find attached your unique QR code for event check‑in.\n\n"
+#                     "Thank you."
+#                 ),
+#                 from_email=settings.DEFAULT_FROM_EMAIL,
+#                 to=[email],
+#             )
+#             mail.attach(f"{uid}.png", buf.read(), "image/png")
+#             mail.send(fail_silently=False)
+
+#             sent_count += 1
+
+#         except Exception as e:
+#             # log or collect failures
+#             failed.append({'email': email, 'error': str(e)})
+
+#     return JsonResponse({'sent': sent_count, 'failed': failed})
+
+import io
+import os
+import qrcode
+from PIL import Image
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.conf import settings
+from django.db import connection
+# from django.core.mail import EmailMessage  # Mail logic is commented
+
+# Constants for ticket template
+TEMPLATE_PATH = "qr-design.png"   # Blank ticket template
+X, Y    = 547, 790                # Top‑left corner of QR box
+BW, BH  = 320, 320                # QR box width & height
+TICKETS_DIR = "tickets"          # Folder to store PDF tickets
+
+# Ensure folder exists
+os.makedirs(TICKETS_DIR, exist_ok=True)
+
+def to_snake_case(name):
+    return name.strip().lower().replace(" ", "_")
+
 @require_POST
 def api_send_qr_emails(request):
     """
     POST /api/send_qr_emails/
-      → generates QR for each student.id, emails it to student.email
-      → returns JSON { sent: <count>, failed: [<email list>] }
+      → generates QR for each student.id, places it on template,
+        saves as ticket PDF in /tickets folder with name_snake_case.pdf
     """
     sent_count = 0
     failed = []
 
-    # 1. Fetch all students
     with connection.cursor() as cursor:
-        cursor.execute("SELECT id, email FROM student_info WHERE email IS NOT NULL")
+        cursor.execute("SELECT id, email, name FROM student_info WHERE email IS NOT NULL")
         rows = cursor.fetchall()
 
-    for uid, email in rows:
+    for uid, email, name in rows:
         try:
-            # 2. Generate QR image in memory
+            # Generate QR code in memory
             qr = qrcode.QRCode(box_size=10, border=4)
             qr.add_data(str(uid))
             qr.make(fit=True)
             img = qr.make_image(fill_color="black", back_color="white")
 
-            buf = io.BytesIO()
-            img.save(buf, format='PNG')
-            buf.seek(0)
+            # Load and resize QR
+            qr_resized = img.resize((BW, BH), Image.LANCZOS)
 
-            # 3. Create and send email
-            mail = EmailMessage(
-                subject="Your Student QR Code",
-                body=(
-                    "Hello,\n\n"
-                    "Please find attached your unique QR code for event check‑in.\n\n"
-                    "Thank you."
-                ),
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                to=[email],
-            )
-            mail.attach(f"{uid}.png", buf.read(), "image/png")
-            mail.send(fail_silently=False)
+            # Load ticket template
+            if not os.path.exists(TEMPLATE_PATH):
+                raise FileNotFoundError(f"Template not found: {TEMPLATE_PATH}")
+            template = Image.open(TEMPLATE_PATH).convert("RGB")
+
+            # Paste QR onto ticket
+            template.paste(qr_resized, (X, Y))
+
+            # Save as PDF in tickets/ folder
+            filename = f"{to_snake_case(name)}.pdf"
+            output_path = os.path.join(TICKETS_DIR, filename)
+            template.save(output_path, format="PDF")
 
             sent_count += 1
 
+            # # Send email with PDF attachment (COMMENTED OUT)
+            # mail = EmailMessage(
+            #     subject="Your Student QR Code",
+            #     body=(
+            #         "Hello,\n\n"
+            #         "Please find attached your unique QR code for event check‑in.\n\n"
+            #         "Thank you."
+            #     ),
+            #     from_email=settings.DEFAULT_FROM_EMAIL,
+            #     to=[email],
+            # )
+            # with open(output_path, "rb") as f:
+            #     mail.attach(filename, f.read(), "application/pdf")
+            # mail.send(fail_silently=False)
+
         except Exception as e:
-            # log or collect failures
             failed.append({'email': email, 'error': str(e)})
 
     return JsonResponse({'sent': sent_count, 'failed': failed})
