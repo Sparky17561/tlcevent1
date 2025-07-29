@@ -318,7 +318,6 @@ def to_snake_case(name):
 
 
 # views.py
-
 import os
 import qrcode
 from PIL import Image
@@ -326,18 +325,28 @@ from django.http import JsonResponse
 from django.db import connection
 from django.views.decorators.http import require_POST
 
-TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "qr-design.png")
+# Paths & constants
+BASE_DIR = os.path.dirname(__file__)
+TEMPLATE_PATH = os.path.join(BASE_DIR, "qr-design.png")
 
+# Where to drop generated PDFs and QR images
+TICKETS_DIR = os.path.join(BASE_DIR, "tickets")
+QR_DIR = os.path.join(BASE_DIR, "qr")
+
+# Create folders if they don't exist
+os.makedirs(TICKETS_DIR, exist_ok=True)
+os.makedirs(QR_DIR, exist_ok=True)
+
+# QR placement + size on the template
 X, Y = 547, 790
 BW, BH = 320, 320
-TICKETS_DIR = "tickets"
-os.makedirs(TICKETS_DIR, exist_ok=True)
 
 def to_snake_case(name):
     return name.strip().lower().replace(" ", "_")
 
 @require_POST
 def api_generate_qr_pdfs(request):
+    # Fetch all students
     with connection.cursor() as cursor:
         cursor.execute("SELECT id, name FROM student_info")
         rows = cursor.fetchall()
@@ -345,27 +354,38 @@ def api_generate_qr_pdfs(request):
     generated = []
     for uid, name in rows:
         try:
-            # QR generation
+            # ─── 1) Generate the QR image ───
             qr = qrcode.QRCode(box_size=10, border=4)
             qr.add_data(str(uid))
             qr.make(fit=True)
             qr_img = qr.make_image(fill_color="black", back_color="white")
             qr_resized = qr_img.resize((BW, BH), Image.LANCZOS)
 
-            # Load template
+            # ─── 2) Save the QR image into qr/ ───
+            base_name = to_snake_case(name)
+            qr_filename = f"{base_name}.png"
+            qr_path = os.path.join(QR_DIR, qr_filename)
+            qr_resized.save(qr_path)
+
+            # ─── 3) Load the PDF template and paste the QR ───
             template = Image.open(TEMPLATE_PATH).convert("RGB")
             template.paste(qr_resized, (X, Y))
 
-            # Save PDF
-            filename = f"{to_snake_case(name)}.pdf"
-            output_path = os.path.join(TICKETS_DIR, filename)
-            template.save(output_path, format="PDF")
-            generated.append(filename)
+            # ─── 4) Save as PDF into tickets/ ───
+            pdf_filename = f"{base_name}.pdf"
+            pdf_path = os.path.join(TICKETS_DIR, pdf_filename)
+            template.save(pdf_path, format="PDF")
+
+            generated.append(pdf_filename)
+
         except Exception as e:
-            print(f"Error generating for {name}: {e}")
+            # Log and continue on error
+            print(f"Error generating for {name} (ID {uid}): {e}")
 
-    return JsonResponse({"generated": generated, "count": len(generated)})
-
+    return JsonResponse({
+        "generated": generated,
+        "count": len(generated)
+    })
 
 # views.py (same file)
 
