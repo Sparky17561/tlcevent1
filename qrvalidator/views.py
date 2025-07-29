@@ -10,56 +10,173 @@ from django.db                    import connection
 
 # ─── 1. Excel Upload ──────────────────────────────────────────────────────────
 
+# @csrf_exempt
+# def upload_students(request):
+#     if request.method == 'POST' and request.FILES.get('excel_file'):
+#         wb = openpyxl.load_workbook(request.FILES['excel_file'], data_only=True)
+#         ws = wb.active
+#         inserted = 0
+
+#         with connection.cursor() as cursor:
+#             for row in ws.iter_rows(min_row=2, values_only=True):
+#                 if len(row) < 4:
+#                     continue
+
+#                 college, project, domain, num_students = row[:4]
+#                 try:
+#                     num_students = int(num_students)
+#                 except (TypeError, ValueError):
+#                     continue
+
+#                 num_students = max(0, min(4, num_students))
+
+#                 base = 4
+#                 for i in range(num_students):
+#                     offset = base + i*4
+#                     if offset + 3 >= len(row):
+#                         break
+#                     name    = row[offset]
+#                     email   = row[offset+1]
+#                     contact = row[offset+2]
+
+#                     if not name or not email:
+#                         continue
+
+#                     cursor.execute("""
+#                         INSERT INTO student_info
+#                           (id, college_name, project_name, domain,
+#                            number_of_students, name, email, contact)
+#                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+#                         ON CONFLICT (email) DO NOTHING
+#                     """, [
+#                         str(uuid.uuid4()),
+#                         college, project, domain,
+#                         num_students, name, email, contact
+#                     ])
+#                     inserted += 1
+
+#         return JsonResponse({"status": "success", "inserted": inserted})
+
+#     return JsonResponse({"status": "error", "message": "Invalid request"})
+
+
+
+
+import os
+import uuid
+import openpyxl
+from django.http import JsonResponse
+from django.db import connection
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+
 @csrf_exempt
+@require_POST
 def upload_students(request):
-    if request.method == 'POST' and request.FILES.get('excel_file'):
-        wb = openpyxl.load_workbook(request.FILES['excel_file'], data_only=True)
-        ws = wb.active
-        inserted = 0
+    excel_file = request.FILES.get("excel_file")
+    if not excel_file:
+        return JsonResponse({"status": "error", "message": "No file uploaded"}, status=400)
 
-        with connection.cursor() as cursor:
-            for row in ws.iter_rows(min_row=2, values_only=True):
-                if len(row) < 4:
+    try:
+        wb = openpyxl.load_workbook(excel_file, data_only=True)
+    except Exception:
+        return JsonResponse({"status": "error", "message": "Invalid Excel file"}, status=400)
+
+    ws = wb.active
+    inserted = 0
+
+    # Column indexes based on your header row:
+    # 0: Name of the College:
+    # 1: Name of the Project:
+    # 2: Domain of the Project:
+    # 3: Project Report         <-- ignore
+    # 4: Number of Students:
+    # 5,6,7: Student 1 Name, E‑Mail, Contact
+    # 8: Student 1 Photo         <-- ignore
+    # 9,10,11: Student 2 Name, E‑Mail, Contact
+    # 12: Student 2 Photo        <-- ignore
+    # 13,14,15: Student 3 Name, E‑Mail, Contact
+    # 16: Student 3 Photo        <-- ignore
+    # 17,18,19: Student 4 Name, E‑Mail, Contact
+    # 20: Student 4 Photo        <-- ignore
+    # 21,22,23: Faculty Name, E‑Mail, Contact (optional)
+    # 24: Share photo of payment <-- ignore
+    # 25: Transaction id         <-- ignore
+
+    student_offsets = [
+        (5, 6, 7),
+        (9, 10, 11),
+        (13, 14, 15),
+        (17, 18, 19),
+    ]
+    mentor_offset = (21, 22, 23)
+
+    with connection.cursor() as cursor:
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            # skip rows missing the core team info
+            college = row[0]
+            project = row[1]
+            domain  = row[2]
+            raw_cnt = row[4]
+
+            if not (college and project and domain and raw_cnt):
+                continue
+
+            # parse and clamp student count between 2–4
+            try:
+                num_students = int(raw_cnt)
+            except (TypeError, ValueError):
+                continue
+            num_students = max(2, min(4, num_students))
+
+            # insert each student
+            for i in range(num_students):
+                name_idx, email_idx, contact_idx = student_offsets[i]
+                name    = row[name_idx]
+                email   = row[email_idx]
+                contact = row[contact_idx]
+
+                if not (name and email):
                     continue
 
-                college, project, domain, num_students = row[:4]
-                try:
-                    num_students = int(num_students)
-                except (TypeError, ValueError):
-                    continue
-
-                num_students = max(0, min(4, num_students))
-
-                base = 4
-                for i in range(num_students):
-                    offset = base + i*4
-                    if offset + 3 >= len(row):
-                        break
-                    name    = row[offset]
-                    email   = row[offset+1]
-                    contact = row[offset+2]
-
-                    if not name or not email:
-                        continue
-
-                    cursor.execute("""
-                        INSERT INTO student_info
-                          (id, college_name, project_name, domain,
-                           number_of_students, name, email, contact)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                        ON CONFLICT (email) DO NOTHING
-                    """, [
+                cursor.execute(
+                    """
+                    INSERT INTO student_info
+                      (id, college_name, project_name, domain,
+                       number_of_students, name, email, contact)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+                    ON CONFLICT (email) DO NOTHING
+                    """,
+                    [
                         str(uuid.uuid4()),
                         college, project, domain,
-                        num_students, name, email, contact
-                    ])
-                    inserted += 1
+                        num_students, name, email, contact,
+                    ],
+                )
+                inserted += cursor.rowcount
 
-        return JsonResponse({"status": "success", "inserted": inserted})
+            # insert faculty/mentor if present
+            m_name  = row[mentor_offset[0]]
+            m_email = row[mentor_offset[1]]
+            m_cont  = row[mentor_offset[2]]
+            if m_name and m_email:
+                cursor.execute(
+                    """
+                    INSERT INTO student_info
+                      (id, college_name, project_name, domain,
+                       number_of_students, name, email, contact)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+                    ON CONFLICT (email) DO NOTHING
+                    """,
+                    [
+                        str(uuid.uuid4()),
+                        college, project, domain,
+                        num_students, m_name, m_email, m_cont,
+                    ],
+                )
+                inserted += cursor.rowcount
 
-    return JsonResponse({"status": "error", "message": "Invalid request"})
-
-
+    return JsonResponse({"status": "success", "inserted": inserted})
 
 # ─── 2. QR Scanner Page ───────────────────────────────────────────────────────
 
